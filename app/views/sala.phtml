@@ -1,0 +1,21 @@
+<?php require 'header.phtml'; ?>
+<div data-role="header" data-posistion="fixed">
+    <a class="back" href="#back">Voltar</a>
+    <h1>FLISOL</h1>
+</div>
+<div data-role="content">
+    <p>Escolha uma palestra para dar sua opnião:</p>
+    <ul data-role="listview" data-inset="true" data-theme="c" data-dividertheme="a">
+        <li data-role="list-divider">
+            <?php echo $sala?>
+        </li>
+        <?php foreach ($stmt as $data):?>
+        <li>
+            <a href="palestra/<?php echo $data['id']?>">
+                <?php echo $data['nome'] ?>
+            </a>
+        </li>
+        <?php endforeach?>
+    </ul>
+</div>
+<?php require 'footer.phtml'; ?>

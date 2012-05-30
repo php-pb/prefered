@@ -1,0 +1,18 @@
+<?php require 'header.phtml'; ?>
+<div data-role="header" data-posistion="fixed">
+    <h1>FLISOL</h1>
+</div>
+<div data-role="content">
+    <p>Sistema de avaliação de palestras. <br/>Escolha uma sala abaixo:</p>
+    <ul data-role="listview" data-inset="true" data-theme="c" data-dividertheme="a">
+        <li data-role="list-divider">SALAS</li>
+        <?php foreach ($stmt as $data):?>
+        <li>
+            <a href="<?php echo urlencode($data['sala']) ?>">
+                <?php echo $data['sala'] ?>
+            </a>
+        </li>
+        <?php endforeach?>
+    </ul>
+</div>
+<?php require 'footer.phtml'; ?>
