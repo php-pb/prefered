@@ -8,69 +8,73 @@ $slim = new Slim();
 //Page root:
 //List all room where the event is on.
 $slim->get('/', function(){
-    $conn = new Connection();
+    $link = Connection::getConnection();
     $sql = "SELECT sala
             FROM palestra
             GROUP BY sala";
-    $stmt = $conn->getConnection()
-                ->query($sql)
-                ->fetchAll();
-
+    $stmt = $link->query($sql)
+                 ->fetchAll();
     require '../app/views/index.phtml';
 });
 
 //Page room:
 //List all lecture per room;
 $slim->get('/:sala', function($sala){
-    $conn = new Connection();
+    $link = Connection::getConnection();
     $sql = "SELECT id, nome, sala
             FROM palestra
             WHERE sala = :sala";
-    $stmt = $conn->getConnection()
-                ->query($sql)
-                ->bindParam(':sala', $sala)
-                ->fetchAll();
-    require "../app/view/sala.phtml";
+    $param = array(":sala"=>$sala);
+    
+    try {
+        $stmt = $link->prepare($sql);
+        $stmt->execute($param);
+        $go = $stmt->fetchAll();
+        require '../app/views/sala.phtml';
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+    }
+    
+    
 });
 
 //Page lecture:
 //List the specific lecture;
 $slim->get('/palestra/:id', function($id){
-    $conn = new Connection();
+    $link = Connection::getConnection();
     $sql = "SELECT *
             FROM palestra
             WHERE id = :id";
-    $stmt = $conn->getConnection()
-                ->query($sql)
-                ->bindParam(':id', $id)
-                ->fetch();
-    require "../app/view/palestra.phtml";
+    $param = array(":id"=>$id);
+    $stmt = $link->getConnection()
+                 ->prepare($sql)
+                 ->execute($param);
+    $go = $stmt->fetchAll();
+    require "../app/views/palestra.phtml";
 });
 
 //Page vote:
 //Get the vote of the user, based in your preferences;
 $slim->get('/palestra/:id/:voto', function($id,$voto){
-    $conn = new Connection();
+    $link = Connection::getConnection();
     $sql = "SELECT *
             FROM voto
             WHERE palestra_id = :id";
-    $stmt = $conn->getConnection()
-            ->query($sql)
-            ->bindParam(":id", $id)
-            ->fetch();
-    if(!($stmt)){
+    $param = array(":id"=>$id);
+    $stmt = $link->prepare($sql)
+                 ->execute($param);
+    $go = $stmt->fetchAll();
+    if(!($go)){
         $sql = "INSERT INTO voto
                 VALUES(:id, 0, 0 )";
-        $conn->getConnection()
-             ->query($sql)
+        $link->query($sql)
              ->execute(array(':id'=>$id, ':voto'=>$voto));
     }
 
     $sql = "UPDATE voto
             SET :voto = :voto + 1
             WHERE palestra_id = :id";
-    $conn->getConnection()
-         ->query($sql)
+    $link->query($sql)
          ->execute(array(":id"=>$id, ":voto"=>$voto));
 
     require '../app/views/obrigado.phtml';
