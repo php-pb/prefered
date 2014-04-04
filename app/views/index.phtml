@@ -6,9 +6,9 @@
     <p>Sistema de avaliação de palestras. <br/>Escolha uma sala abaixo:</p>
     <ul data-role="listview" data-inset="true" data-theme="c" data-dividertheme="a">
         <li data-role="list-divider">SALAS</li>
-        <?php foreach ($stmt as $data):?>
+        <?php foreach ($stmt as $data): ?>
         <li>
-            <a href="<?php echo urlencode($data['sala']) ?>">
+            <a href="<?php echo urlencode($data['sala']);?>">
                 <?php echo $data['sala'] ?>
             </a>
         </li>
