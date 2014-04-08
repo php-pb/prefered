@@ -1,5 +1,5 @@
 <?php
-ini_set("display_errors", 1);
+//ini_set("display_errors", 1);
 require "../vendors/Slim/Slim.php";
 require "../app/Connection.php";
 
@@ -46,38 +46,46 @@ $slim->get('/palestra/:id', function($id){
             FROM palestra
             WHERE id = :id";
     $param = array(":id"=>$id);
-    $stmt = $link->getConnection()
-                 ->prepare($sql)
-                 ->execute($param);
-    $go = $stmt->fetchAll();
-    require "../app/views/palestra.phtml";
+    try {
+        $stmt = $link->prepare($sql);
+        $stmt->execute($param);
+        $go = $stmt->fetchAll();
+        require '../app/views/palestra.phtml';
+    } catch (PDOException $e) {
+        echo $e->getMessage();
+    }
+    
 });
 
 //Page vote:
 //Get the vote of the user, based in your preferences;
 $slim->get('/palestra/:id/:voto', function($id,$voto){
     $link = Connection::getConnection();
+    
     $sql = "SELECT *
             FROM voto
             WHERE palestra_id = :id";
+    
     $param = array(":id"=>$id);
-    $stmt = $link->prepare($sql)
-                 ->execute($param);
-    $go = $stmt->fetchAll();
-    if(!($go)){
-        $sql = "INSERT INTO voto
-                VALUES(:id, 0, 0 )";
-        $link->query($sql)
-             ->execute(array(':id'=>$id, ':voto'=>$voto));
+    
+    try {
+        $stmt = $link->prepare($sql)
+                     ->execute($param);
+    } catch (PDOException $e) {
+        echo $e->getMessage();
     }
+     
+    try{
+        $sql = "UPDATE voto
+                SET :voto = :voto + 1
+                WHERE palestra_id = :id";
+        $link->prepare($sql)
+             ->execute(array(":id"=>$id, ":voto"=>$voto));
 
-    $sql = "UPDATE voto
-            SET :voto = :voto + 1
-            WHERE palestra_id = :id";
-    $link->query($sql)
-         ->execute(array(":id"=>$id, ":voto"=>$voto));
-
-    require '../app/views/obrigado.phtml';
+        require '../app/views/obrigado.phtml';
+    } catch (PDOException $e) {
+        $e->getMessage();
+    }
 });
 
 $slim->run();
