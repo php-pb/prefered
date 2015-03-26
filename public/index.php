@@ -1,91 +1,99 @@
 <?php
-//ini_set("display_errors", 1);
-require "../vendors/Slim/Slim.php";
-require "../app/Connection.php";
 
-$slim = new Slim();
+define('VIEW_PATH', realpath(__DIR__ . '/../app/views'));
+
+require __DIR__ . '/../vendors/Slim/Slim.php';
+$config = require __DIR__ . '/../app/config.php';
+
+$connection = function () use ($config) {
+    try {
+        yield new \PDO(sprintf(
+            '%s:host=%s;dbname=%s',
+            $config['db_connection']['driver'],
+            $config['db_connection']['hostname'],
+            $config['db_connection']['dbname']
+        ),
+            $config['db_connection']['user'],
+            $config['db_connection']['password']
+        );
+    } catch (Exception $e) {
+        exit($e->getMessage());
+    }
+};
+
+$generator = $connection();
+
+$app = new Slim();
 
 //Page root:
-//List all room where the event is on.
-$slim->get('/', function(){
-    $link = Connection::getConnection();
-    $sql = "SELECT sala
-            FROM palestra
-            GROUP BY sala";
-    $stmt = $link->query($sql)
-                 ->fetchAll();
-    require '../app/views/index.phtml';
+/* List all room where the event is on. */
+$app->get('/', function() use ($generator) {
+    try {
+        $stmt = $generator
+            ->current()
+            ->query('SELECT sala FROM palestra GROUP BY sala')
+            ->fetchAll();
+    } catch (Excepion $e) {
+        $generator->throw(new Exception('Shit happens!'));
+    }
+
+    require VIEW_PATH . '/index.phtml';
 });
 
 //Page room:
 //List all lecture per room;
-$slim->get('/:sala', function($sala){
-    $link = Connection::getConnection();
-    $sql = "SELECT id, nome, sala
-            FROM palestra
-            WHERE sala = :sala";
-    $param = array(":sala"=>$sala);
-    
+$app->get('/:sala', function($sala) use ($generator) {
     try {
-        $stmt = $link->prepare($sql);
-        $stmt->execute($param);
-        $go = $stmt->fetchAll();
-        require '../app/views/sala.phtml';
+        $go = $generator
+            ->current()
+            ->prepare('SELECT id, nome, sala FROM palestra WHERE sala = :sala')
+            ->execute([':sala' => $sala])
+            ->fetchAll();
+
+        require VIEW_PATH . '/sala.phtml';
     } catch (PDOException $e) {
-        echo $e->getMessage();
+        $generator->throw($e);
     }
-    
-    
 });
 
 //Page lecture:
 //List the specific lecture;
-$slim->get('/palestra/:id', function($id){
-    $link = Connection::getConnection();
-    $sql = "SELECT *
-            FROM palestra
-            WHERE id = :id";
-    $param = array(":id"=>$id);
+$app->get('/palestra/:id', function($id) use ($generator) {
     try {
-        $stmt = $link->prepare($sql);
-        $stmt->execute($param);
-        $go = $stmt->fetchAll();
-        require '../app/views/palestra.phtml';
+        $go = $generator
+            ->current()
+            ->prepare('SELECT * FROM palestra WHERE id = :id')
+            ->execute([':id' => $id])
+            ->fetchAll();
+
+        require VIEW_PATH . '/palestra.phtml';
     } catch (PDOException $e) {
-        echo $e->getMessage();
+        $generator->throw($e);
     }
-    
 });
 
 //Page vote:
 //Get the vote of the user, based in your preferences;
-$slim->get('/palestra/:id/:voto', function($id,$voto){
-    $link = Connection::getConnection();
-    
-    $sql = "SELECT *
-            FROM voto
-            WHERE palestra_id = :id";
-    
-    $param = array(":id"=>$id);
-    
+$app->get('/palestra/:id/:voto', function($id, $voto) use ($generator) {
     try {
-        $stmt = $link->prepare($sql)
-                     ->execute($param);
-    } catch (PDOException $e) {
-        echo $e->getMessage();
-    }
-     
-    try{
-        $sql = "UPDATE voto
-                SET :voto = :voto + 1
-                WHERE palestra_id = :id";
-        $link->prepare($sql)
-             ->execute(array(":id"=>$id, ":voto"=>$voto));
+        $stmt = $generator
+            ->current()
+            ->prepare('SELECT * FROM voto WHERE palestra_id = :id')
+            ->execute([':id' => $id]);
 
-        require '../app/views/obrigado.phtml';
+        $generator
+            ->current()
+            ->prepare('UPDATE voto SET :voto = :voto + 1 WHERE palestra_id = :id')
+            ->execute([
+                ':id' => $id,
+                ':voto' => $voto,
+            ]);
+
     } catch (PDOException $e) {
-        $e->getMessage();
+        $generator->throw($e);
     }
+
+    require VIEW_PATH . '/obrigado.phtml';
 });
 
-$slim->run();
+$app->run();
